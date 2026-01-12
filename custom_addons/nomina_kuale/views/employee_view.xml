@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data>
+<!--        Componente Tabla-->
+        <record id="employee_tree_view" model="ir.ui.view">
+            <field name="name">employee.tree</field>
+            <field name="model">nomina_kuale.employee</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="employee_id"/>
+                    <field name="total_adjustment" string="Ajuste total al sueldo"/>
+                    <field name="total_payment" string="Pago Total de Sueldo"/>
+                </tree>
+            </field>
+        </record>
+
+<!--        Formulario-->
+        <record id="employee_form_view" model="ir.ui.view">
+            <field name="name">nomina.employee.form</field>
+            <field name="model">nomina_kuale.employee</field>
+            <field name="arch" type="xml">
+                <form string="Datos de la Pre-Nómina del Empleado">
+                    <sheet>
+                        <group string="Datos del Empleado">
+                            <group>
+                                <group>
+                                    <field name="employee_id" string="Empleado"/>
+                                    <field name="company_employee"/>
+                                </group>
+                                <group>
+                                    <field name="department_employee_id" />
+                                    <field name="job_employee_id"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group>
+                                    <field name="rol_employee_id"/>
+                                    <field name="curp_employee_id"/>
+                                </group>
+                                <group>
+                                    <field name="rfc_employee_id"/>
+                                </group>
+                            </group>
+                        </group>
+                        <group string="Datos Bancarios">
+                            <group>
+                                <field name="bank_account_employee_id"
+                                       domain="[('applicant_id', '=', False)]"/>
+                                <field name="account_type"/>
+                                <field name="bank_name"/>
+                            </group>
+                            <group>
+                                <field name="account_number"/>
+                                <field name="interbank_clabe"/>
+                                <field name="payroll_card_number"/>
+                            </group>
+                        </group>
+                        <group string="Datos del Contrato">
+                            <group>
+                                <field name="contract_id"/>
+                                <field name="date_start"/>
+                            </group>
+                            <group>
+                                <field name="structure_type_id"/>
+                                <field name="wage"/>
+                            </group>
+                        </group>
+                        <group string="Ajuste de Pago">
+                            <group>
+                                <field name="total_adjustment" readonly="1" string="Total de los Ajustes"/>
+                            </group>
+                            <group>
+                                <field name="total_payment" readonly="1" string="Total del Pago"/>
+                            </group>
+                            <field name="adjustment_line_ids">
+                                <tree editable="bottom">
+                                    <field name="adjustment_type"/>
+                                    <field name="concept"/>
+                                    <field name="amount"/>
+                                    <field name="description"/>
+                                </tree>
+                            </field>
+                        </group>
+
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+<!--        Busqueda-->
+        <record id="employee_search_view" model="ir.ui.view">
+            <field name="name">nomina.employee.search</field>
+            <field name="model">nomina_kuale.employee</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="employee_id"/>
+                    <field name="company_employee"/>
+                </search>
+            </field>
+        </record>
+
+<!--        Lista-->
+        <record id="action_employee" model="ir.actions.act_window">
+            <field name="name">Lista de Ajustes de Pagos</field>
+            <field name="res_model">nomina_kuale.employee</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No hay datos registrados aún.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>

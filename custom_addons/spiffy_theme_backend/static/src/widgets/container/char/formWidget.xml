@@ -1,0 +1,68 @@
+
+<!--
+<templates xml:space="preserve">
+    <t t-name="spiffy_theme_backend.formWidget">
+        <br/>
+        <div class="form-group">
+            <t t-if="props.readonly">
+                <span t-esc="formattedValue" class="labeled_input"/>
+            </t>
+            <t t-elif="props.record.fields[props.name].type === 'selection'">
+                <t t-call="spiffy_theme_backend.customSelection" />
+            </t>
+            <t t-else="">
+                <input
+                        class="o_input "
+                        t-att-class="{'o_field_translate': isTranslatable}"
+                        t-att-id="props.id"
+                        t-att-type="props.isPassword ? 'password' : 'text'"
+                        t-att-autocomplete="props.autocomplete or (props.isPassword ? 'new-password' : 'off')"
+                        t-att-maxlength="maxLength > 0 and maxLength"
+                        t-att-placeholder="props.placeholder"
+                        t-ref="input"
+                />
+                <t t-if="isTranslatable">
+                    <TranslationButton
+                            fieldName="props.name"
+                            record="props.record"
+                    />
+                </t>
+            </t>
+        </div>
+    </t>
+</templates>
+
+-->
+
+<templates xml:space="preserve">
+    <t t-name="spiffy_theme_backend.formWidget">
+        <br/>
+        <div class="form-group o_wrap_field" style="align-items: flex-start;"> <!-- Aplica flexbox -->
+            <t t-if="props.readonly">
+                <span t-esc="formattedValue" class="labeled_input"/>
+            </t>
+            <t t-elif="props.record.fields[props.name].type === 'selection'">
+                <t t-call="spiffy_theme_backend.customSelection" />
+            </t>
+            <t t-else="">
+                <input
+                    class="o_input o_field_widget"
+                    t-att-class="{'o_field_translate': isTranslatable}"
+                    t-att-id="props.id"
+                    t-att-type="props.isPassword ? 'password' : 'text'"
+                    t-att-autocomplete="props.autocomplete or (props.isPassword ? 'new-password' : 'off')"
+                    t-att-maxlength="maxLength > 0 and maxLength"
+                    t-att-placeholder="props.placeholder"
+                    t-ref="input"
+                    style="width: 100%; margin-top: 5px;"
+                />
+                <t t-if="isTranslatable">
+                    <TranslationButton
+                        fieldName="props.name"
+                        record="props.record"
+                    />
+                </t>
+            </t>
+        </div>
+    </t>
+</templates>

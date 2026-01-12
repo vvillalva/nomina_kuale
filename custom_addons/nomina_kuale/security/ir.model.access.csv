@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+employee_model,employee model,model_nomina_kuale_employee,base.group_system,1,1,1,1
+employee_model,employee model,model_nomina_kuale_employee,base.group_user,1,1,1,1
+access_nomina_adjustment_line_user,access.nomina.adjustment.line.user,model_nomina_kuale_adjustment_line,base.group_user,1,1,1,1
+access_nomina_adjustment_line_admin,access.nomina.adjustment.line.admin,model_nomina_kuale_adjustment_line,base.group_system,1,1,1,1

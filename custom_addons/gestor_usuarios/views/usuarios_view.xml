@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data>
+<!--        Este es un componente de tipo tabla-->
+        <record id="usuarios_tree_view" model="ir.ui.view">
+            <field name="name">usuarios.tree</field>
+<!--            Este apartado es el nombre de mi modelo-->
+            <field name="model">gestor_usuarios.usuario</field>
+            <field name="arch" type="xml">
+                <tree>
+<!--                    Aqui va en name como esta llamada mi variables en el modelo-->
+                    <field name="name"/>
+                    <field name="lastname"/>
+                    <field name="age"/>
+                    <field name="email"/>
+                    <field name="phone"/>
+                </tree>
+            </field>
+        </record>
+
+<!--        Este es un componente de tipo formulario-->
+        <record id="usuarios_form_view" model="ir.ui.view">
+          <field name="name">usuarios.form</field>
+<!--            Este apartado es el nombre de mi modelo-->
+          <field name="model">gestor_usuarios.usuario</field>
+          <field name="arch" type="xml">
+            <form string="Usuario">
+              <sheet>
+                <!-- Título principal -->
+                <div class="oe_title">
+                  <h1>
+                    <field name="name" placeholder="Nombre del usuario"/>
+                  </h1>
+                </div>
+                <!-- Dos columnas -->
+                <group>
+                  <group string="Datos personales">
+<!--                      El name es el nombre que puse a mis variables en mi modelo-->
+                    <field name="lastname" string="Apellido"/>
+                    <field name="age" string="Edad"/>
+                  </group>
+                  <group string="Contacto">
+                    <field name="email" string="Correo" widget="email"/>
+                    <field name="phone" string="Teléfono" widget="phone"/>
+                      <field name="cantidad" string="Cantidad de objetos"/>
+                      <field name="precio" string="$"/>
+                      <field name="total" string="Total de todo"/>
+                  </group>
+                </group>
+              </sheet>
+            </form>
+          </field>
+        </record>
+
+<!--        Este es un componente de tipo busqueda-->
+        <record id="usuarios_search_view" model="ir.ui.view">
+            <field name="name">usuarios.tree</field>
+<!--            Este apartado es el nombre de mi modelo-->
+            <field name="model">gestor_usuarios.usuario</field>
+            <field name="arch" type="xml">
+                <search>
+<!--                    Aqui va en name como esta llamada mi variables en el modelo-->
+                    <field name="name"/>
+                    <field name="lastname"/>
+                    <field name="age"/>
+                    <field name="email"/>
+                    <field name="phone"/>
+                </search>
+            </field>
+        </record>
+
+<!--        Aqui es como si renderizara los anteriores componentes-->
+        <record id="action_usuarios" model="ir.actions.act_window">
+            <field name="name">Lista de Usuarios</field>
+            <field name="res_model">gestor_usuarios.usuario</field>
+<!--            Se especifica que vistas tengo-->
+            <field name="view_mode">tree,form</field>
+<!--            Agrupa por alguna variable-->
+<!--            <field name="context">{'group_by': ''}</field>-->
+<!--            Esto hace filtrado-->
+<!--            <field name="domain">[]</field>-->
+<!--            Este se pone cuando no hay datos en la tabla-->
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No hay usuarios registrados aun.
+                </p>
+            </field>
+        </record>
+
+    </data>
+</odoo>

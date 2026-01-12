@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data>
+        <record id="view_employees_form_custom" model="ir.ui.view">
+            <field name="name">employees.form.custom</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_form" />
+            <field name="arch" type="xml">
+<!--                ESTO ES HERENCIA, MEJOR DINERO ME DIERA-->
+                <xpath expr="//group//field[@name='mobile_phone']" position="before">
+                    <field name="birthday"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
+<!--YA TENGO HERENCIA PA-->

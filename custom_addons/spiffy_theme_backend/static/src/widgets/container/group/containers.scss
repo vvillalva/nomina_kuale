@@ -1,0 +1,58 @@
+////box style
+.box_style {
+  border: 1px solid #ddd;
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  margin-bottom: 15px;
+
+  .g-col-sm-2 {
+    background-color: #f0f0f0;
+  }
+
+  .o_cell.o_wrap_label.flex-grow-1.flex-sm-grow-0.w-100.text-break.text-900 {
+    margin-left: 10px;
+  }
+
+  .o_horizontal_separator {
+    margin-left: 10px;
+    margin-top: 10px !important;
+    margin-bottom: 10px !important;
+    vertical-align: middle;
+    box-shadow: 0 0 0 #e6e6e6 !important;
+  }
+
+  .o_input, .o_field_widget {
+    margin-bottom: 15px;
+  }
+
+  .o_radio_field {
+    margin-top: 5px;
+
+    input {
+      margin-right: 5px;
+    }
+
+    label {
+      margin-right: 15px;
+    }
+  }
+
+  .o_input_dropdown {
+    margin-top: 10px;
+  }
+
+  .group_string {
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+}
+
+
+.highlight{
+  background-color: $o_brand-primary;
+  color: #FFFFFF !important;
+}
+
+.readonly{
+  background-color: #d6d6d6;
+}
