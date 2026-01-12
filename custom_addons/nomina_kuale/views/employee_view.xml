@@ -14,7 +14,7 @@
             </field>
         </record>
 
-<!--        Formulario-->
+<!--        Formulario Nuevo-->
         <record id="employee_form_view" model="ir.ui.view">
             <field name="name">nomina.employee.form</field>
             <field name="model">nomina_kuale.employee</field>
@@ -44,8 +44,7 @@
                         </group>
                         <group string="Datos Bancarios">
                             <group>
-                                <field name="bank_account_employee_id"
-                                       domain="[('applicant_id', '=', False)]"/>
+                                <field name="bank_account_employee_id"/>
                                 <field name="account_type"/>
                                 <field name="bank_name"/>
                             </group>
