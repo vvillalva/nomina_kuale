@@ -14,13 +14,18 @@
             </field>
         </record>
 
-<!--        Formulario Nuevo-->
+<!--        Formulario -->
         <record id="employee_form_view" model="ir.ui.view">
             <field name="name">nomina.employee.form</field>
             <field name="model">nomina_kuale.employee</field>
             <field name="arch" type="xml">
                 <form string="Datos de la Pre-Nómina del Empleado">
                     <sheet>
+                        <div class="oe_title">
+                          <h1>
+                            <field name="name" placeholder="e.j. Marc Mendez"/>
+                          </h1>
+                        </div>
                         <group string="Datos del Empleado">
                             <group>
                                 <group>
@@ -64,22 +69,40 @@
                                 <field name="wage"/>
                             </group>
                         </group>
-                        <group string="Ajuste de Pago">
-                            <group>
-                                <field name="total_adjustment" readonly="1" string="Total de los Ajustes"/>
-                            </group>
-                            <group>
-                                <field name="total_payment" readonly="1" string="Total del Pago"/>
-                            </group>
-                            <field name="adjustment_line_ids">
-                                <tree editable="bottom">
-                                    <field name="adjustment_type"/>
-                                    <field name="concept"/>
-                                    <field name="amount"/>
-                                    <field name="description"/>
-                                </tree>
-                            </field>
-                        </group>
+                        <notebook>
+                            <page string="Ajuste de Pago Nominal">
+                                <group string="Ajuste de Pago">
+                                    <group>
+                                        <field name="total_adjustment" readonly="1" string="Total de los Ajustes"/>
+                                    </group>
+                                    <group>
+                                        <field name="total_payment" readonly="1" string="Total del Pago"/>
+                                    </group>
+                                    <field name="adjustment_line_ids">
+                                        <tree editable="bottom">
+                                            <field name="adjustment_type"/>
+                                            <field name="concept"/>
+                                            <field name="amount"/>
+                                            <field name="description"/>
+                                        </tree>
+                                    </field>
+                                </group>
+                            </page>
+                            <page string="Asistencia de empleado">
+                                <group col="2" string="Asistencias de Empleado">
+                                    <group>
+                                        <field name="quincena_name" readonly="1"/>
+                                        <field name="quincena_date_start" readonly="1"/>
+                                        <field name="quincena_date_end" readonly="1"/>
+                                    </group>
+                                    <group>
+                                        <field name="pay_per_day" readonly="1"/>
+                                        <field name="attended_days_quincena" readonly="1"/>
+                                        <field name="quincenal_payment_total" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
 
                     </sheet>
                 </form>
