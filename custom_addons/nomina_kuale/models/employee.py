@@ -219,6 +219,7 @@ class Employee(models.Model):
 
             rec.total_adjustment = total
 
+    #TODO:QUEDA A REVISIÓN PENDIENTE
     @api.depends('wage', 'total_adjustment')
     def _compute_total_payment(self):
         for rec in self:
@@ -256,6 +257,41 @@ class Employee(models.Model):
         for rec in self:
             wage = rec.wage or 0.0
             rec.pay_per_day = wage / 30.0 if wage else 0.0
+
+    #DIA DE DESCANSO SABADO/DOMINGO
+    def _generate_weekend_adjustments(self):
+        Adjustment = self.env['nomina_kuale.adjustment.line']
+
+        for rec in self:
+            if not rec.quincena_date_start or not rec.quincena_date_end:
+                continue
+
+            current_day = rec.quincena_date_start
+            while current_day <= rec.quincena_date_end:
+
+                # 5 = sábado, 6 = domingo
+                if current_day.weekday() in (5, 6):
+
+                    exists = Adjustment.search([
+                        ('nomina_id', '=', rec.id),
+                        ('adjustment_type', '=', 'abono'),
+                        ('concept', '=', 'DIA DE DESCANSO'),
+                        ('description', 'ilike', current_day.strftime('%d/%m/%Y')),
+                    ], limit=1)
+
+                    if not exists:
+                        Adjustment.create({
+                            'nomina_id': rec.id,
+                            'adjustment_type': 'abono',
+                            'concept': 'DIA DE DESCANSO',
+                            'amount': rec.pay_per_day,
+                            'description': (
+                                f'Pago del día de descanso del empleado '
+                                f'({current_day.strftime("%d/%m/%Y")})'
+                            ),
+                        })
+
+                current_day += timedelta(days=1)
 
     def _generate_absence_adjustment(self):
         Adjustment = self.env['nomina_kuale.adjustment.line']
@@ -362,6 +398,8 @@ class Employee(models.Model):
             rec._generate_absence_adjustment()
             # ABONOS POR ASISTENCIA
             rec._generate_attendance_adjustments()
+            # ABONO DE DIA DE DESCANSO
+            rec._generate_weekend_adjustments()
 
     @api.depends('attended_days_quincena', 'pay_per_day')
     def _compute_quincenal_payment_total(self):

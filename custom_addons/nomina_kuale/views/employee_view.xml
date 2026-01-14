@@ -75,9 +75,9 @@
                                     <group>
                                         <field name="total_adjustment" readonly="1" string="Total de los Ajustes"/>
                                     </group>
-                                    <group>
-                                        <field name="total_payment" readonly="1" string="Total del Pago"/>
-                                    </group>
+<!--                                    <group>-->
+<!--                                        <field name="total_payment" readonly="1" string="Total del Pago"/>-->
+<!--                                    </group>-->
                                     <field name="adjustment_line_ids">
                                         <tree editable="bottom">
                                             <field name="adjustment_type"/>
