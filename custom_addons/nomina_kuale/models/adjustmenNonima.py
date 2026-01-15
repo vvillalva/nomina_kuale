@@ -14,6 +14,7 @@ class NominaAdjustmentLine(models.Model):
     adjustment_type = fields.Selection(
         [
             ('abono', 'Abono'),
+            ('salario', 'Salario'),
             ('cargo', 'Cargo'),
         ],
         string="Tipo",

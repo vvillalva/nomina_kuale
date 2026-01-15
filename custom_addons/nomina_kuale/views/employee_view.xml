@@ -73,7 +73,12 @@
                             <page string="Ajuste de Pago Nominal">
                                 <group string="Ajuste de Pago">
                                     <group>
-                                        <field name="total_adjustment" readonly="1" string="Total de los Ajustes"/>
+                                        <group>
+                                            <field name="total_adjustment" readonly="1" string="Total de los Ajustes"/>
+                                        </group>
+                                        <group>
+                                            <field name="discount" readonly="1" string="Cargo de la quincena"/>
+                                        </group>
                                     </group>
 <!--                                    <group>-->
 <!--                                        <field name="total_payment" readonly="1" string="Total del Pago"/>-->

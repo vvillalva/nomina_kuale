@@ -186,6 +186,16 @@ class Employee(models.Model):
         currency_field='currency_id',
     )
 
+    discount = fields.Monetary(
+        string='Descuentos',
+        compute = '_compute_discount',
+    )
+
+    bonus = fields.Monetary(
+        string='Complementarias',
+        compute='_compute_bonus',
+    )
+
     @api.depends('employee_id', 'employee_id.bank_account_ids')
     def _compute_bank_account_employee(self):
         for rec in self:
@@ -206,19 +216,29 @@ class Employee(models.Model):
                 rec.contract_id = rec.employee_id.contract_id
             else:
                 rec.contract_id = False
-
+    #DESCUENTOS DE LA QUINCENA
     @api.depends('adjustment_line_ids.amount', 'adjustment_line_ids.adjustment_type')
+    def _compute_discount(self):
+        for rec in self:
+            cargos = sum(
+                line.amount for line in rec.adjustment_line_ids
+                if line.adjustment_type == 'cargo'
+            )
+            rec.discount = cargos
+    #COMPLEMENTARIAS DE LA QUINCENA
+    def _compute_bonus(self):
+        for rec in self:
+            bonus = sum(
+                line.amount for line in rec.adjustment_line_ids
+                if line.adjustment_type == 'abono'
+            )
+            rec.bonus = bonus
+    #AJUSTE TOTAL
+    @api.depends('wage','discount','bonus')
     def _compute_total_adjustment(self):
         for rec in self:
-            total = 0.0
-            for line in rec.adjustment_line_ids:
-                if line.adjustment_type == 'abono':
-                    total += line.amount
-                elif line.adjustment_type == 'cargo':
-                    total -= line.amount
-
-            rec.total_adjustment = total
-
+            quincena = rec.wage / 2
+            rec.total_adjustment = quincena - rec.discount + rec.bonus
     #TODO:QUEDA A REVISIÓN PENDIENTE
     @api.depends('wage', 'total_adjustment')
     def _compute_total_payment(self):
@@ -228,7 +248,7 @@ class Employee(models.Model):
     def _get_today_date(self):
         """Fecha de hoy respetando el timezone/contexto del usuario."""
         return fields.Date.context_today(self)
-
+    #INICIO Y FIN DE QUINCENA
     @api.depends()
     def _compute_quincena_data(self):
         for rec in self:
@@ -251,13 +271,12 @@ class Employee(models.Model):
                 rec.quincena_name = 'q2'
                 rec.quincena_date_start = date(today.year, today.month, 16)
                 rec.quincena_date_end = month_end
-
+    #PAGO POR DIA
     @api.depends('wage')
     def _compute_pay_per_day(self):
         for rec in self:
             wage = rec.wage or 0.0
             rec.pay_per_day = wage / 30.0 if wage else 0.0
-
     #DIA DE DESCANSO SABADO/DOMINGO
     def _generate_weekend_adjustments(self):
         Adjustment = self.env['nomina_kuale.adjustment.line']
@@ -266,40 +285,59 @@ class Employee(models.Model):
             if not rec.quincena_date_start or not rec.quincena_date_end:
                 continue
 
+            # Detectar sábados y domingos de la quincena
+            weekend_days = []
             current_day = rec.quincena_date_start
-            while current_day <= rec.quincena_date_end:
 
+            while current_day <= rec.quincena_date_end:
                 # 5 = sábado, 6 = domingo
                 if current_day.weekday() in (5, 6):
-
-                    exists = Adjustment.search([
-                        ('nomina_id', '=', rec.id),
-                        ('adjustment_type', '=', 'abono'),
-                        ('concept', '=', 'DIA DE DESCANSO'),
-                        ('description', 'ilike', current_day.strftime('%d/%m/%Y')),
-                    ], limit=1)
-
-                    if not exists:
-                        Adjustment.create({
-                            'nomina_id': rec.id,
-                            'adjustment_type': 'abono',
-                            'concept': 'DIA DE DESCANSO',
-                            'amount': rec.pay_per_day,
-                            'description': (
-                                f'Pago del día de descanso del empleado '
-                                f'({current_day.strftime("%d/%m/%Y")})'
-                            ),
-                        })
-
+                    weekend_days.append(current_day)
                 current_day += timedelta(days=1)
 
-    def _generate_absence_adjustment(self):
+            # Buscar ajuste existente
+            existing = Adjustment.search([
+                ('nomina_id', '=', rec.id),
+                ('adjustment_type', '=', 'salario'),
+                ('concept', '=', 'DESCANSO'),
+            ], limit=1)
+
+            # Si no hay fines de semana (caso raro) → eliminar
+            if not weekend_days:
+                if existing:
+                    existing.unlink()
+                continue
+
+            # Calcular monto total
+            total_amount = len(weekend_days) * rec.pay_per_day
+
+            # Descripción con fechas
+            fechas = ', '.join(d.strftime('%d/%m/%Y') for d in weekend_days)
+            description = f'Días de descanso pagados en la quincena: {fechas}'
+
+            # Crear o actualizar UN SOLO descanso
+            if existing:
+                existing.write({
+                    'amount': total_amount,
+                    'description': description,
+                })
+            else:
+                Adjustment.create({
+                    'nomina_id': rec.id,
+                    'adjustment_type': 'salario',
+                    'concept': 'DESCANSO',
+                    'amount': total_amount,
+                    'description': description,
+                })
+    #DIA DE FALTAS
+    def _generate_absence_adjustments(self):
         Adjustment = self.env['nomina_kuale.adjustment.line']
 
         for rec in self:
             if not rec.employee_id or not rec.quincena_date_start or not rec.quincena_date_end:
                 continue
 
+            # Asistencias de la quincena
             attendances = self.env['hr.attendance'].search([
                 ('employee_id', '=', rec.employee_id.id),
                 ('check_in', '>=', datetime.combine(rec.quincena_date_start, time.min)),
@@ -311,36 +349,57 @@ class Employee(models.Model):
                 local_dt = fields.Datetime.context_timestamp(rec, att.check_in)
                 attended_days.add(local_dt.date())
 
+            # Detectar días faltados (L–V)
+            missing_days = []
             current_day = rec.quincena_date_start
-            while current_day <= rec.quincena_date_end:
-                # 0 = lunes, 4 = viernes
-                if current_day.weekday() < 5:
-                    if current_day not in attended_days:
-                        exists = Adjustment.search([
-                            ('nomina_id', '=', rec.id),
-                            ('adjustment_type', '=', 'cargo'),
-                            ('concept', '=', 'COBRO POR FALTA'),
-                            ('description', 'ilike', current_day.strftime('%d/%m/%Y')),
-                        ], limit=1)
 
-                        if not exists:
-                            Adjustment.create({
-                                'nomina_id': rec.id,
-                                'adjustment_type': 'cargo',
-                                'concept': 'COBRO POR FALTA',
-                                'amount': rec.pay_per_day,
-                                'description': f'El empleado faltó el día {current_day.strftime("%d/%m/%Y")}',
-                            })
+            while current_day <= rec.quincena_date_end:
+                if current_day.weekday() < 5 and current_day not in attended_days:
+                    missing_days.append(current_day)
                 current_day += timedelta(days=1)
 
+            # Si no hubo faltas → eliminar ajuste previo si existe
+            existing = Adjustment.search([
+                ('nomina_id', '=', rec.id),
+                ('adjustment_type', '=', 'cargo'),
+                ('concept', '=', 'FALTA'),
+            ], limit=1)
+
+            if not missing_days:
+                if existing:
+                    existing.unlink()
+                continue
+
+            # Calcular monto total
+            total_amount = len(missing_days) * rec.pay_per_day
+
+            # Descripción con detalle de fechas
+            fechas = ', '.join(d.strftime('%d/%m/%Y') for d in missing_days)
+            description = f'Faltas registradas en los días: {fechas}'
+
+            # Crear o actualizar UN SOLO cargo
+            if existing:
+                existing.write({
+                    'amount': total_amount,
+                    'description': description,
+                })
+            else:
+                Adjustment.create({
+                    'nomina_id': rec.id,
+                    'adjustment_type': 'cargo',
+                    'concept': 'FALTA',
+                    'amount': total_amount,
+                    'description': description,
+                })
+    #DIA DE ASISTENCIA
     def _generate_attendance_adjustments(self):
         Adjustment = self.env['nomina_kuale.adjustment.line']
 
         for rec in self:
-            if not rec.employee_id or not rec.quincena_date_start or not rec.quincena_date_end:
+            if not rec.quincena_date_start or not rec.quincena_date_end:
                 continue
 
-            # 1️⃣ Asistencias de la quincena
+            # Asistencias reales SOLO LUNES A VIERNES
             attendances = self.env['hr.attendance'].search([
                 ('employee_id', '=', rec.employee_id.id),
                 ('check_in', '>=', datetime.combine(rec.quincena_date_start, time.min)),
@@ -350,28 +409,45 @@ class Employee(models.Model):
             attended_days = set()
             for att in attendances:
                 local_dt = fields.Datetime.context_timestamp(rec, att.check_in)
-                attended_days.add(local_dt.date())
-
-            # 2️⃣ Generar abono por cada día asistido (lunes a viernes)
-            for day in attended_days:
+                day = local_dt.date()
                 if day.weekday() < 5:  # lunes a viernes
+                    attended_days.add(day)
 
-                    exists = Adjustment.search([
-                        ('nomina_id', '=', rec.id),
-                        ('adjustment_type', '=', 'abono'),
-                        ('concept', '=', 'DIA DE ASISTENCIA'),
-                        ('description', 'ilike', day.strftime('%d/%m/%Y')),
-                    ], limit=1)
+            # Buscar ajuste existente
+            existing = Adjustment.search([
+                ('nomina_id', '=', rec.id),
+                ('adjustment_type', '=', 'salario'),
+                ('concept', '=', 'ASISTENCIA'),
+            ], limit=1)
 
-                    if not exists:
-                        Adjustment.create({
-                            'nomina_id': rec.id,
-                            'adjustment_type': 'abono',
-                            'concept': 'DIA DE ASISTENCIA',
-                            'amount': rec.pay_per_day,
-                            'description': f'Pago del día de asistencia del empleado ({day.strftime("%d/%m/%Y")})',
-                        })
+            # Si no hubo asistencias → eliminar ajuste
+            if not attended_days:
+                if existing:
+                    existing.unlink()
+                continue
 
+            # Monto total (SOLO días asistidos)
+            total_amount = len(attended_days) * rec.pay_per_day
+
+            # Descripción
+            fechas = ', '.join(d.strftime('%d/%m/%Y') for d in sorted(attended_days))
+            description = f'Días laborados en la quincena: {fechas}'
+
+            # Crear o actualizar UN SOLO dia
+            if existing:
+                existing.write({
+                    'amount': total_amount,
+                    'description': description,
+                })
+            else:
+                Adjustment.create({
+                    'nomina_id': rec.id,
+                    'adjustment_type': 'salario',
+                    'concept': 'ASISTENCIA',
+                    'amount': total_amount,
+                    'description': description,
+                })
+    #DIAS ASISTIDOS A LA QUINCENA
     @api.depends('attendance_ids.check_in', 'employee_id', 'quincena_date_start', 'quincena_date_end')
     def _compute_attended_days_quincena(self):
         for rec in self:
@@ -395,15 +471,16 @@ class Employee(models.Model):
 
             rec.attended_days_quincena = len(attended_dates)
             # CARGOS POR FALTAS
-            rec._generate_absence_adjustment()
+            rec._generate_absence_adjustments()
             # ABONOS POR ASISTENCIA
             rec._generate_attendance_adjustments()
             # ABONO DE DIA DE DESCANSO
             rec._generate_weekend_adjustments()
-
+    #PAGO TOTAL A LA QUINCENA
     @api.depends('attended_days_quincena', 'pay_per_day')
     def _compute_quincenal_payment_total(self):
         for rec in self:
             rec.quincenal_payment_total = (rec.attended_days_quincena or 0) * (rec.pay_per_day or 0.0)
 
+#TODO: PREGUNTAR SOBRE LO DEL ISR Y LO DEL IMSS PARA IMPLEMENTARLO EN EL RESUMEN DEL PAGO QUINCENAL
 
