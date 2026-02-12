@@ -1,0 +1,18 @@
+<odoo>
+    <record id="sale_order_tree_points" model="ir.ui.view">
+        <!--        Nombre de la vista                  -->
+        <field name="name">sale.order.tree.loyalty.points</field>
+        <!--        Modelo - del que heredamos -  checa sale_order en _inherit         -->
+        <field name="model">sale.order</field>
+        <!--        Aqui decimos que vamos a heredar los componentes XML de una vista, en este caso la de "Ventas"-->
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+        <!--  Aqui decimos que localice el campo "validity_date" en la vista que queremos heredar y que nuestro -->
+        <!--  Nuevo campo lo coloque "despúes"-->
+            <xpath expr="//tree" position="inside">
+                <!--    Este es del campo que creamos en nuestro modelo "sale_order"-->
+                <field name="order_points" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

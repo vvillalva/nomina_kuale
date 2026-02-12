@@ -196,6 +196,7 @@ class Employee(models.Model):
         compute='_compute_bonus',
     )
 
+
     @api.depends('employee_id', 'employee_id.bank_account_ids')
     def _compute_bank_account_employee(self):
         for rec in self:
@@ -208,7 +209,6 @@ class Employee(models.Model):
 
             if accounts:
                 rec.bank_account_employee_id = accounts[0]
-
     @api.depends('employee_id')
     def _compute_contract_id(self):
         for rec in self:
@@ -244,7 +244,6 @@ class Employee(models.Model):
     def _compute_total_payment(self):
         for rec in self:
             rec.total_payment = (rec.wage or 0.0) + (rec.total_adjustment or 0.0)
-
     def _get_today_date(self):
         """Fecha de hoy respetando el timezone/contexto del usuario."""
         return fields.Date.context_today(self)
@@ -352,6 +351,7 @@ class Employee(models.Model):
             # Detectar días faltados (L–V)
             missing_days = []
             current_day = rec.quincena_date_start
+            today = fields.Date.context_today(rec)
 
             while current_day <= rec.quincena_date_end:
                 if current_day.weekday() < 5 and current_day not in attended_days:
@@ -476,6 +476,77 @@ class Employee(models.Model):
             rec._generate_attendance_adjustments()
             # ABONO DE DIA DE DESCANSO
             rec._generate_weekend_adjustments()
+
+    def _calculate_isr_quincenal(self, base):
+        """Calcula ISR quincenal con tarifa 15 días (2026)"""
+        tarifas = [
+            (0.01,     416.70,   0.00,   1.92),
+            (416.71,  3537.15,   7.95,   6.40),
+            (3537.16, 6216.15, 207.75,  10.88),
+            (6216.16, 7225.95, 499.20,  16.00),
+            (7225.96, 8651.40, 660.75,  17.92),
+            (8651.41, 17448.75, 916.20, 21.36),
+            (17448.76, 27501.60, 2795.25, 23.52),
+            (27501.61, 52505.25, 5159.70, 30.00),
+            (52505.26, 70006.95, 12660.75, 32.00),
+            (70006.96, 210020.70, 18261.30, 34.00),
+            (210020.71, float('inf'), 65866.05, 35.00),
+        ]
+
+        if not base or base <= 0:
+            return 0.0
+
+        for lim_inf, lim_sup, cuota_fija, porcentaje in tarifas:
+            if lim_inf <= base <= lim_sup:
+                excedente = base - lim_inf
+                return cuota_fija + (excedente * (porcentaje / 100))
+
+        return 0.0
+    def _generate_isr_adjustment(self):
+        Adjustment = self.env['nomina_kuale.adjustment.line']
+
+        for rec in self:
+            if not rec.quincenal_payment_total:
+                continue
+
+            # Base gravable (puedes afinarla después)
+            base_isr = rec.quincenal_payment_total
+
+            isr_amount = rec._calculate_isr_quincenal(base_isr)
+
+            # Buscar ISR existente
+            existing = Adjustment.search([
+                ('nomina_id', '=', rec.id),
+                ('adjustment_type', '=', 'cargo'),
+                ('concept', '=', 'ISR'),
+            ], limit=1)
+
+            # Si no hay ISR o es cero → eliminar si existe
+            if isr_amount <= 0:
+                if existing:
+                    existing.unlink()
+                continue
+
+            description = (
+                f'ISR quincenal calculado sobre base gravable '
+                f'${base_isr:,.2f}'
+            )
+
+            # Crear o actualizar UN SOLO ISR
+            if existing:
+                existing.write({
+                    'amount': isr_amount,
+                    'description': description,
+                })
+            else:
+                Adjustment.create({
+                    'nomina_id': rec.id,
+                    'adjustment_type': 'cargo',
+                    'concept': 'ISR',
+                    'amount': isr_amount,
+                    'description': description,
+                })
+
     #PAGO TOTAL A LA QUINCENA
     @api.depends('attended_days_quincena', 'pay_per_day')
     def _compute_quincenal_payment_total(self):

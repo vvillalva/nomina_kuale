@@ -1,0 +1,10 @@
+<odoo>
+    <data>
+        <record id="user_task_own_rule" model="ir.rule">
+            <field name="name">Solo ver mis tareas</field>
+            <field name="model_id" ref="model_user_task"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+    </data>
+</odoo>
